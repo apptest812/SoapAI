@@ -23,13 +23,13 @@ class DashController extends Controller
     
     public function store_audio_file (Request $req)
     {
-        
+        dump("OK");
         $file = $req->file('audio_file');
         $filename = time() . '_' .$file->getClientOriginalName(); 
         // $fileUrl = Storage::disk('public')->exists('/Audio'.$filename);
         Storage::disk('public')->put('/'.$filename, file_get_contents($file));
         $path = str_replace('/', '\\', Storage::disk('public')->path('/' . $filename));
-        
+        dd($path);
         $client = new Client();
 
         $headers = [
@@ -64,7 +64,6 @@ class DashController extends Controller
             ]);
 
             $responseData = json_decode($response->getBody(), true);
-            dd($responseData);
             $body = $responseData['text'];
             
             return view('show_chat_completions_data',compact('body'));
