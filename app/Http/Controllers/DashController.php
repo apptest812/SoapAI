@@ -26,69 +26,65 @@ class DashController extends Controller
         
         $file = $req->file('audio_file');
         $filename = time() . '_' .$file->getClientOriginalName(); 
-        $fileUrl = Storage::disk('public')->exists('/Audio'.$filename);
+        // $fileUrl = Storage::disk('public')->exists('/Audio'.$filename);
+        Storage::disk('public')->put('/'.$filename, file_get_contents($file));
+        $path = str_replace('/', '\\', Storage::disk('public')->path('/' . $filename));
+        
+        $client = new Client();
 
-        if ($fileUrl == true) {
-
-            return response()->json(['file' => 'Audio File Already Exists.']);
-
-        } else {
-
-            Storage::disk('public')->put('/'.$filename, file_get_contents($file));
-            $path = str_replace('/', '\\', Storage::disk('public')->path('/' . $filename));
-            $fileUrl = Storage::disk('public')->url('/Audio'.$filename);
-
-            $client = new Client();
-
-            $headers = [
-                'Authorization' => 'Bearer ' . getenv('OPENAI_API_KEY') ?? '',
-                'Cookie' => '__cf_bm=hMtT10inLh1to1BHEoJAcm0wody2YzdK1FX7tz9JoOk-1707386194-1-AWsLbMEzmHV7Oqd1VcP3hIXXuqTSGLBn+nsZi0/axZqCAlC2ErT8Hw0o7j3ZD1RstzLq/djgY5TZ29YT/H8BQm0=; _cfuvid=lx8x4XHVex.CsTQQIxi88nwGPEM32Hxz4Fhq09Nrxag-1707382541088-0-604800000'
-            ];
-            $options = [
-                'multipart' => [
-                    [
-                        'name' => 'file',
-                        'contents' => Utils::tryFopen($path, 'r'),
-                        'filename' => $path,
-                        'headers'  => [
-                            'Content-Type' => 'multipart/form-data'
-                        ]
-                    ],
-                    [
-                        'name' => 'model',
-                        'contents' => 'whisper-1'
-                    ],
-                    [
-                        'name' => 'response_format',
-                        'contents' => 'json'
+        $headers = [
+            'Authorization' => 'Bearer ' . getenv('OPENAI_API_KEY') ?? '',
+            // 'Cookie' => '__cf_bm=hMtT10inLh1to1BHEoJAcm0wody2YzdK1FX7tz9JoOk-1707386194-1-AWsLbMEzmHV7Oqd1VcP3hIXXuqTSGLBn+nsZi0/axZqCAlC2ErT8Hw0o7j3ZD1RstzLq/djgY5TZ29YT/H8BQm0=; _cfuvid=lx8x4XHVex.CsTQQIxi88nwGPEM32Hxz4Fhq09Nrxag-1707382541088-0-604800000'
+        ];
+        $options = [
+            'multipart' => [
+                [
+                    'name' => 'file',
+                    'contents' => Utils::tryFopen($path, 'r'),
+                    'filename' => $path,
+                    'headers'  => [
+                        'Content-Type' => 'multipart/form-data'
                     ]
+                ],
+                [
+                    'name' => 'model',
+                    'contents' => 'whisper-1'
+                ],
+                [
+                    'name' => 'response_format',
+                    'contents' => 'json'
                 ]
-            ];
+            ]
+        ];
 
-            try {
-                $response = $client->post('https://api.openai.com/v1/audio/transcriptions', [
-                    'headers' => $headers,
-                    'multipart' => $options['multipart'],
-                ]);
-            
-                $responseData = json_decode($response->getBody(), true);
-                
-                $body = $responseData['text'];
-             
-                return view('show_chat_completions_data',compact('body'));
-            
-            } catch (RequestException $e) {
-               
-                $response = $e->getResponse();
-                $statusCode = $response->getStatusCode();
-                $errorMessage = $response->getBody()->getContents();
-            
-                echo  "Coode :" . $statusCode . "\n" . "Message :". $errorMessage;
-            } catch (\Exception $e) {
-                echo   "Error: " .  $e->getMessage() . "\n";
-            }
+        try {
+            $response = $client->post('https://api.openai.com/v1/audio/transcriptions', [
+                'headers' => $headers,
+                'multipart' => $options['multipart'],
+            ]);
 
+            $responseData = json_decode($response->getBody(), true);
+            dd($responseData);
+            $body = $responseData['text'];
+            
+            return view('show_chat_completions_data',compact('body'));
+        
+        } catch (RequestException $e) {
+            
+            $response = $e->getResponse();
+            $statusCode = $response->getStatusCode();
+            $errorMessage = $response->getBody()->getContents();
+        
+            echo  "Coode :" . $statusCode . "\n" . "Message :". $errorMessage;
+        } catch (\Exception $e) {
+            echo   "Error: " .  $e->getMessage() . "\n";
         }
+        // if ($fileUrl == true) {
+
+        //     return response()->json(['file' => 'Audio File Already Exists.']);
+
+        // } else {
+        // }
     }
 
     public function show_audio_file(Request $req)
